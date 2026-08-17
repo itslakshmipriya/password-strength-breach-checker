@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Password Checker</title>
+<style>
+  body { font-family: sans-serif; max-width: 400px; margin: 40px auto; }
+  input { width: 100%; padding: 8px; margin-bottom: 10px; }
+  button { padding: 8px 16px; cursor: pointer; }
+  .strong { color: green; }
+  .weak { color: red; }
+</style>
+</head>
+<body>
+  <h2>Password Strength & Breach Checker</h2>
+  <input type="password" id="password" placeholder="Enter password" oninput="updateStrength()">
+  <p>Strength: <b id="strength">-</b></p>
+  <button onclick="checkBreach()">Check Breach Status</button>
+  <p id="result"></p>
+
+<script>
+function getStrength(pw) {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  return score;
+}
+
+const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+
+function updateStrength() {
+  const pw = document.getElementById('password').value;
+  document.getElementById('strength').innerText = labels[getStrength(pw)];
+}
+
+async function checkBreach() {
+  const pw = document.getElementById('password').value;
+  const resultEl = document.getElementById('result');
+  if (!pw) return;
+
+  resultEl.innerText = 'Checking...';
+
+  try {
+    const res = await fetch('http://127.0.0.1:5000/api/check-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+
+    if (data.breached) {
+      resultEl.innerHTML = `⚠️ Found in <b>${data.count.toLocaleString()}</b> breaches!`;
+      resultEl.className = 'weak';
+    } else {
+      resultEl.innerText = '✅ Not found in known breaches.';
+      resultEl.className = 'strong';
+    }
+  } catch (err) {
+    resultEl.innerText = 'Error checking password.';
+  }
+}
+</script>
+</body>
+</html>
